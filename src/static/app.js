@@ -1,44 +1,49 @@
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   const activitiesList = document.getElementById("activities-list");
   const activitySelect = document.getElementById("activity");
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
 
-  // Function to fetch activities from API
-  async function fetchActivities() {
-    try {
-      const response = await fetch("/activities");
-      const activities = await response.json();
+  if (!activitiesList || !activitySelect) return;
+  activitiesList.innerHTML = "<p>Loading activities...</p>";
+  try {
+    const res = await fetch("/activities");
+    const activities = await res.json();
+    activitiesList.innerHTML = "";
+    activitySelect.innerHTML = '<option value="">-- Select an activity --</option>';
+    Object.entries(activities).forEach(([name, info]) => {
+      // 活动卡片
+      const card = document.createElement("div");
+      card.className = "activity-card";
+      card.innerHTML = `
+        <h4>${name}</h4>
+        <p><strong>Description:</strong> ${info.description}</p>
+        <p><strong>Schedule:</strong> ${info.schedule}</p>
+        <p><strong>Max Participants:</strong> ${info.max_participants}</p>
+        <div class="participants-section">
+          <strong>Participants:</strong>
+          ${
+            info.participants.length
+              ? `<ul class="participants-list">${info.participants
+                  .map(
+                    (email) =>
+                      `<li><span class="participant-email">${email}</span></li>`
+                  )
+                  .join("")}</ul>`
+              : `<span class="no-participants">No participants yet.</span>`
+          }
+        </div>
+      `;
+      activitiesList.appendChild(card);
 
-      // Clear loading message
-      activitiesList.innerHTML = "";
-
-      // Populate activities list
-      Object.entries(activities).forEach(([name, details]) => {
-        const activityCard = document.createElement("div");
-        activityCard.className = "activity-card";
-
-        const spotsLeft = details.max_participants - details.participants.length;
-
-        activityCard.innerHTML = `
-          <h4>${name}</h4>
-          <p>${details.description}</p>
-          <p><strong>Schedule:</strong> ${details.schedule}</p>
-          <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
-        `;
-
-        activitiesList.appendChild(activityCard);
-
-        // Add option to select dropdown
-        const option = document.createElement("option");
-        option.value = name;
-        option.textContent = name;
-        activitySelect.appendChild(option);
-      });
-    } catch (error) {
-      activitiesList.innerHTML = "<p>Failed to load activities. Please try again later.</p>";
-      console.error("Error fetching activities:", error);
-    }
+      // 下拉选项
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      activitySelect.appendChild(opt);
+    });
+  } catch (e) {
+    activitiesList.innerHTML = "<p>Failed to load activities.</p>";
   }
 
   // Handle form submission
@@ -80,7 +85,4 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Error signing up:", error);
     }
   });
-
-  // Initialize app
-  fetchActivities();
 });
